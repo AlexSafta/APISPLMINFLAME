@@ -1,0 +1,167 @@
+// This is your Prisma schema file
+// Convention: provider keys are lowercase slugs e.g. "emag", "ingram", "globiz"
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Provider {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g. "emag", "ingram", "globiz"
+  name        String
+  enabled     Boolean  @default(false)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  credentials ProviderCredential[]
+  brands      Brand[]
+  categories  Category[]
+  products    Product[]
+  syncJobs    SyncJob[]
+
+  @@map("providers")
+}
+
+model ProviderCredential {
+  id         String   @id @default(cuid())
+  providerId String
+  key        String   // e.g. "API_KEY", "CLIENT_ID", "CLIENT_SECRET"
+  // Value stored as reference to env var OR encrypted value
+  // Convention: if value starts with "env:" it points to an env var name
+  // e.g. "env:PROVIDER_EMAG_CLIENT_ID" or encrypted base64 string
+  value      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, key])
+  @@map("provider_credentials")
+}
+
+model Brand {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String
+  providerId String
+  externalId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  provider Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([providerId, slug])
+  @@unique([providerId, externalId])
+  @@map("brands")
+}
+
+model Category {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String
+  providerId String
+  externalId String?
+  parentId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  provider Provider   @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  parent   Category?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryParent")
+  products Product[]
+
+  @@unique([providerId, slug])
+  @@unique([providerId, externalId])
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  providerId  String
+  externalId  String   // ID from the provider's API
+  sku         String?
+  name        String
+  description String?
+  price       Decimal?  @db.Decimal(12, 2)
+  currency    String?   @default("RON")
+  stockQty    Int?
+  inStock     Boolean   @default(false)
+  url         String?   // Link to product on provider's website
+  images      String[]  // Array of image URLs
+  brandId     String?
+  categoryId  String?
+  rawJson     Json?     // Raw API response for debugging/re-mapping
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  provider     Provider           @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  brand        Brand?             @relation(fields: [brandId], references: [id])
+  category     Category?          @relation(fields: [categoryId], references: [id])
+  attributes   ProductAttribute[]
+  priceHistory PriceHistory[]
+
+  @@unique([providerId, externalId])
+  @@index([providerId])
+  @@index([inStock])
+  @@index([price])
+  @@index([updatedAt])
+  @@map("products")
+}
+
+model ProductAttribute {
+  id        String @id @default(cuid())
+  productId String
+  key       String
+  value     String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_attributes")
+}
+
+model PriceHistory {
+  id        String   @id @default(cuid())
+  productId String
+  price     Decimal  @db.Decimal(12, 2)
+  currency  String   @default("RON")
+  at        DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([at])
+  @@map("price_history")
+}
+
+model SyncJob {
+  id            String     @id @default(cuid())
+  providerId    String?
+  status        SyncStatus @default(PENDING)
+  startedAt     DateTime?
+  endedAt       DateTime?
+  fetchedCount  Int        @default(0)
+  upsertedCount Int        @default(0)
+  errorMessage  String?
+  logs          Json?      // Array of log entries {level, message, at}
+  createdAt     DateTime   @default(now())
+
+  provider Provider? @relation(fields: [providerId], references: [id])
+
+  @@map("sync_jobs")
+}
+
+enum SyncStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  PARTIAL
+}

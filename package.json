@@ -1,0 +1,51 @@
+{
+  "name": "product-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "sync:provider": "tsx scripts/sync-provider.ts",
+    "sync:all": "tsx scripts/sync-all.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.10.0",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@tanstack/react-query": "^5.18.1",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "ioredis": "^5.3.2",
+    "lucide-react": "^0.323.0",
+    "next": "14.1.0",
+    "p-limit": "^5.0.0",
+    "p-retry": "^6.2.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "ssh2-sftp-client": "^12.0.1",
+    "tailwind-merge": "^2.2.1",
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.0.1",
+    "postcss": "^8",
+    "prisma": "^5.10.0",
+    "tailwindcss": "^3.3.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5"
+  }
+}
